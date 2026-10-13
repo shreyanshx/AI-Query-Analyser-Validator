@@ -34,6 +34,42 @@ export interface TestConnectionResponse {
   table_count: number;
 }
 
+export interface Column {
+  name: string;
+  data_type: string;
+  nullable: boolean;
+  default?: string | null;
+  is_primary_key: boolean;
+}
+
+export interface Index {
+  name: string;
+  columns: string[];
+  unique: boolean;
+}
+
+export interface ForeignKey {
+  name?: string | null;
+  columns: string[];
+  referenced_table: string;
+  referenced_columns: string[];
+}
+
+export interface Table {
+  name: string;
+  schema_name?: string | null;
+  columns: Column[];
+  indexes: Index[];
+  foreign_keys: ForeignKey[];
+  row_estimate?: number | null;
+}
+
+export interface Schema {
+  dialect: string;
+  database?: string | null;
+  tables: Table[];
+}
+
 export interface ValidateRequest {
   sql: string;
   dialect: string;

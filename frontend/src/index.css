@@ -215,6 +215,39 @@ label {
   margin-bottom: 0.5rem;
 }
 
+/* Nested column/index lists inside a table node render as plain rows. */
+.schema-tree ul {
+  list-style: none;
+  padding-left: 1rem;
+  margin: 0.4rem 0 0;
+}
+
+.schema-tree ul li {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0.15rem 0;
+  margin-bottom: 0;
+}
+
+.connection-schema {
+  margin-top: 1.5rem;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.badge.pk {
+  color: var(--primary);
+}
+
+.badge.not-null {
+  color: var(--muted);
+}
+
 /* --- Analyzer --- */
 .analyzer-toolbar {
   display: flex;

@@ -8,8 +8,14 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 
-import { listConnections, testConnection } from '../api/client';
-import { DIALECTS, type ConnectionConfig, type ConnectionInfo, type Dialect } from '../api/types';
+import { getConnectionSchema, listConnections, testConnection } from '../api/client';
+import {
+  DIALECTS,
+  type ConnectionConfig,
+  type ConnectionInfo,
+  type Dialect,
+  type Schema,
+} from '../api/types';
 
 const DEFAULT_PORTS: Record<Dialect, number> = {
   postgres: 5432,
@@ -35,6 +41,29 @@ export function ConnectionManager(): JSX.Element {
   );
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [schema, setSchema] = useState<Schema | null>(null);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+
+  async function loadSchema(connectionId: string) {
+    setSelectedId(connectionId);
+    setSchema(null);
+    setSchemaError(null);
+    setSchemaLoading(true);
+    try {
+      setSchema(await getConnectionSchema(connectionId));
+    } catch (err) {
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: unknown }).message)
+          : 'Could not load schema';
+      setSchemaError(message);
+    } finally {
+      setSchemaLoading(false);
+    }
+  }
 
   async function refreshConnections() {
     try {
@@ -71,6 +100,8 @@ export function ConnectionManager(): JSX.Element {
       // Clear the password from memory as soon as the request completes.
       setPassword('');
       await refreshConnections();
+      // Render the introspected schema tree for the just-tested connection.
+      await loadSchema(response.connection.connection_id);
     } catch (err) {
       const message =
         err && typeof err === 'object' && 'message' in err
@@ -182,14 +213,75 @@ export function ConnectionManager(): JSX.Element {
           <ul className="schema-tree">
             {connections.map((c) => (
               <li key={c.connection_id}>
-                <strong>{c.database}</strong> ({c.dialect}) — {c.username}@{c.host}:{c.port}
+                <strong>{c.database}</strong> ({c.dialect}) &middot; {c.username}@{c.host}:{c.port}
                 <br />
-                <span className="muted small">id: {c.connection_id}</span>
+                <span className="muted small">id: {c.connection_id}</span>{' '}
+                <button
+                  type="button"
+                  className="link-button"
+                  disabled={schemaLoading && selectedId === c.connection_id}
+                  onClick={() => void loadSchema(c.connection_id)}
+                >
+                  {selectedId === c.connection_id && schemaLoading
+                    ? 'Loading schema…'
+                    : 'View schema'}
+                </button>
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      {selectedId && (
+        <div className="connection-schema">
+          <h3>Schema</h3>
+          {schemaLoading && <p className="muted">Loading schema…</p>}
+          {schemaError && <p className="form-error">{schemaError}</p>}
+          {schema && <SchemaTree schema={schema} />}
+        </div>
+      )}
     </div>
+  );
+}
+
+function SchemaTree({ schema }: { schema: Schema }): JSX.Element {
+  if (schema.tables.length === 0) {
+    return <p className="muted">No tables introspected.</p>;
+  }
+  return (
+    <ul className="schema-tree">
+      {schema.tables.map((table) => (
+        <li key={table.schema_name ? `${table.schema_name}.${table.name}` : table.name}>
+          <strong>
+            {table.schema_name ? `${table.schema_name}.` : ''}
+            {table.name}
+          </strong>
+          <ul>
+            {table.columns.map((col) => (
+              <li key={col.name}>
+                {col.name} <span className="muted small">{col.data_type}</span>
+                {col.is_primary_key && <span className="badge pk"> PK</span>}
+                {!col.nullable && <span className="badge not-null"> NOT NULL</span>}
+              </li>
+            ))}
+          </ul>
+          {table.indexes.length > 0 && (
+            <>
+              <span className="muted small">Indexes</span>
+              <ul>
+                {table.indexes.map((idx) => (
+                  <li key={idx.name}>
+                    {idx.name}{' '}
+                    <span className="muted small">
+                      ({idx.columns.join(', ')}){idx.unique ? ' · unique' : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

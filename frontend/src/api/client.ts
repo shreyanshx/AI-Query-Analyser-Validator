@@ -16,6 +16,7 @@ import type {
   ConnectionInfo,
   OptimizeRequest,
   OptimizeResponse,
+  Schema,
   TestConnectionResponse,
   ValidateRequest,
   ValidationResult,
@@ -77,6 +78,13 @@ export async function testConnection(cfg: ConnectionConfig): Promise<TestConnect
 
 export async function listConnections(): Promise<ConnectionInfo[]> {
   const { data } = await api.get<ConnectionInfo[]>('/api/connections');
+  return data;
+}
+
+export async function getConnectionSchema(connectionId: string): Promise<Schema> {
+  const { data } = await api.get<Schema>(
+    `/api/connections/${encodeURIComponent(connectionId)}/schema`,
+  );
   return data;
 }
 
