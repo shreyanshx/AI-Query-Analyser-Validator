@@ -19,12 +19,12 @@ from app.models.api_models import (
     ConnectionInfo,
     TestConnectionResponse,
 )
-from app.models.schema_models import NormalizedSchema
+from app.models.schema_models import NormalizedSchema, Schema
 from app.services.schema import SchemaService
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/connections", tags=["connections"])
+router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 # In-memory per-user connection store: {sub: {connection_id: ConnectionConfig}}.
 _connections: dict[str, dict[str, ConnectionConfig]] = {}
@@ -37,6 +37,16 @@ def _get_schema_service(request: Request) -> SchemaService:
         service = SchemaService()
         request.app.state.schema_service = service
     return service
+
+
+def get_connection_config(cognito_sub: str, connection_id: str) -> ConnectionConfig | None:
+    """Return a stored connection config for a user, or ``None`` if unknown.
+
+    Used by the validate/optimize routers to resolve a ``connection_id`` into
+    the connection metadata needed for schema-aware analysis.
+    """
+    with _store_lock:
+        return _connections.get(cognito_sub, {}).get(connection_id)
 
 
 def _to_info(connection_id: str, config: ConnectionConfig) -> ConnectionInfo:
@@ -78,6 +88,43 @@ def test_connection(
         ok=True,
         table_count=len(schema.tables),
     )
+
+
+@router.get("/{connection_id}/schema", response_model=Schema)
+def get_connection_schema(
+    connection_id: str,
+    request: Request,
+    user: CurrentUser = Depends(get_current_user),
+) -> Schema:
+    """Return the normalized catalog schema for one of the user's connections.
+
+    Resolves the stored connection for ``(user.sub, connection_id)`` so one user
+    cannot read another user's connection (unknown ids yield 404). The returned
+    schema is catalog metadata only (table/column/index/foreign-key names and
+    types) sourced from the TTL-cached introspection performed at ``/test`` time
+    (introspecting on a cache miss). It contains no row data and no credentials,
+    and no user SQL is executed.
+    """
+    config = get_connection_config(user.sub, connection_id)
+    if config is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Unknown connection",
+        )
+
+    service = _get_schema_service(request)
+    try:
+        schema: NormalizedSchema = service.get_schema(user.sub, config)
+    except NotImplementedError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001 - surface as a clean 502
+        logger.warning("Schema introspection failed for user %s", user.sub)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Could not introspect the database schema",
+        ) from exc
+
+    return schema
 
 
 @router.get("", response_model=list[ConnectionInfo])

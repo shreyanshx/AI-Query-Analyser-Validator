@@ -75,7 +75,10 @@ class CognitoVerifier:
     def verify_token(self, token: str) -> dict[str, Any]:
         """Verify signature, issuer, audience/client id, exp, and token_use.
 
-        Returns the decoded claims (including ``sub``) on success.
+        Fails closed: if the deployment is not fully configured (both the user
+        pool id and the app client id must be set) the token is rejected rather
+        than accepted on signature alone. Returns the decoded claims (including
+        ``sub``) on success.
         """
         try:
             headers = jwt.get_unverified_header(token)
@@ -86,20 +89,35 @@ class CognitoVerifier:
         if not kid:
             raise AuthError("Token missing key id")
 
-        key = self._find_key(kid)
         settings = self._settings
+
+        # Fail closed on a half-configured deployment. Without BOTH the issuer
+        # (derived from the user pool id) and the app client id we cannot bind a
+        # token to this issuer and this application, so verifying only the
+        # signature would accept any token signed by *some* Cognito pool. Refuse
+        # rather than silently skip the audience / issuer checks.
+        if not settings.cognito_fully_configured:
+            raise AuthError(
+                "Cognito is not fully configured; refusing to verify tokens. "
+                "COGNITO_USER_POOL_ID and COGNITO_APP_CLIENT_ID must both be set."
+            )
+
+        key = self._find_key(kid)
         token_use_expected = settings.COGNITO_TOKEN_USE
 
-        # Access tokens carry client_id (not aud); id tokens carry aud.
+        # Access tokens carry client_id (not aud); id tokens carry aud. The
+        # issuer is always verified (guaranteed non-empty by the guard above).
         decode_kwargs: dict[str, Any] = {
             "algorithms": ["RS256"],
-            "issuer": settings.COGNITO_ISSUER or None,
+            "issuer": settings.COGNITO_ISSUER,
         }
-        if token_use_expected == "id" and settings.COGNITO_APP_CLIENT_ID:
+        if token_use_expected == "id":
+            # id tokens bind the app client id in the standard ``aud`` claim.
             decode_kwargs["audience"] = settings.COGNITO_APP_CLIENT_ID
         else:
-            # For access tokens python-jose cannot check client_id, so skip aud
-            # verification here and validate client_id from claims below.
+            # Access tokens carry the app client in ``client_id`` (not ``aud``),
+            # which python-jose cannot check; skip aud here and enforce the
+            # client_id claim explicitly below.
             decode_kwargs["options"] = {"verify_aud": False}
 
         try:
@@ -111,7 +129,7 @@ class CognitoVerifier:
         if token_use_expected and token_use != token_use_expected:
             raise AuthError(f"Unexpected token_use '{token_use}'")
 
-        if token_use_expected == "access" and settings.COGNITO_APP_CLIENT_ID:
+        if token_use_expected == "access":
             if claims.get("client_id") != settings.COGNITO_APP_CLIENT_ID:
                 raise AuthError("Token client_id does not match app client")
 

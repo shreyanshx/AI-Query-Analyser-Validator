@@ -2,7 +2,7 @@
   "id": "FEAT-005",
   "type": "docs",
   "description": "Raw-EC2 deployment assets and project documentation. Nginx config serving the React build + reverse-proxying /api to local FastAPI; systemd unit running FastAPI via Gunicorn+Uvicorn workers; a bootstrap script to set up a fresh EC2 t3.micro (install Python 3.11, Node, Nginx; build frontend; create venv; enable services); infra notes for ALB/ACM/Route53/Cognito/Secrets Manager/CloudWatch. Root .env.example (placeholders only), README.md, and .gitignore. No Docker.",
-  "status": "pending",
+  "status": "completed",
   "steps": [
     "Create deployment/nginx/aiqav.conf: server block serving the React build from /var/www/aiqav (try_files for SPA fallback to index.html) and location /api/ proxy_pass to http://127.0.0.1:8000 with proxy headers; a /health passthrough for the ALB target group. Document that TLS terminates at the ALB (HTTP between ALB and Nginx).",
     "Create deployment/systemd/aiqav-backend.service: runs gunicorn with uvicorn workers (app.main:app) from the backend venv as a non-root user, EnvironmentFile pointing to /etc/aiqav/backend.env, Restart=always, WantedBy=multi-user.target.",
@@ -24,5 +24,5 @@
     "bash -n deployment/bootstrap.sh && test -f deployment/nginx/aiqav.conf && test -f deployment/systemd/aiqav-backend.service && test -f .env.example && test -f README.md && test -f .gitignore"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Added raw-EC2 deployment assets and project docs only; no app code touched. deployment/nginx/aiqav.conf serves /var/www/aiqav (SPA fallback to index.html), proxies /api/ and a dedicated /health passthrough to http://127.0.0.1:8000, HTTP-only (TLS at ALB). deployment/systemd/aiqav-backend.service runs gunicorn with uvicorn.workers.UvicornWorker for app.main:app from /opt/aiqav/AI-Query-Analyser-Validator/backend/.venv as non-root user aiqav, EnvironmentFile=/etc/aiqav/backend.env, Restart=always, WantedBy=multi-user.target. deployment/bootstrap.sh is idempotent (set -euo pipefail), supports Amazon Linux 2023 (dnf) and Ubuntu (apt), installs Python 3.11 + Node 20 + Nginx, builds frontend to /var/www/aiqav, creates venv + installs backend deps + gunicorn/uvicorn, installs nginx conf + systemd unit, enables/starts services; passes `bash -n`. deployment/README.md documents ALB+ACM HTTPS termination, /health target-group check, Route 53 alias, Cognito public app client, Secrets Manager JSON shape, and EC2 IAM instance-profile (secretsmanager:GetSecretValue + bedrock:InvokeModel + CloudWatch logs). Root .env.example documents all backend vars (from app/config.py) and frontend VITE_* vars with placeholders only. Root README.md covers product/architecture/local-dev/testing/deployment with prominent no-execution + no-credentials-to-browser/AI safety note. Extended existing root .gitignore (added .env.production, top-level dist/, and !.env.example negation); verified `git check-ignore` keeps .env.example tracked and ignores .env. All paths consistent on port 8000 and web root /var/www/aiqav. Verification per feature spec passed."
 }

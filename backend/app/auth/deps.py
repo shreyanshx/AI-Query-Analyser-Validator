@@ -42,6 +42,19 @@ def get_current_user(
     """Validate the Bearer token and return the current user, else 401."""
     from fastapi import HTTPException, status
 
+    verifier = get_verifier(request)
+
+    # Fail closed on a misconfigured deployment: without both the Cognito user
+    # pool id and app client id we cannot validate issuer and audience/client
+    # id, so protected routes must refuse to serve rather than accept any
+    # Cognito-signed token. Surface this as 503 (server misconfiguration) rather
+    # than 401 so the operational cause is unambiguous.
+    if not verifier.settings.cognito_fully_configured:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication is not configured",
+        )
+
     if credentials is None or not credentials.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -49,7 +62,6 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    verifier = get_verifier(request)
     try:
         claims = verifier.verify_token(credentials.credentials)
     except AuthError as exc:

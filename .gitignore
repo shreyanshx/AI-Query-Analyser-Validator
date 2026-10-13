@@ -11,12 +11,15 @@ venv/
 build/
 dist/
 
-# Environment
+# Environment (keep .env.example tracked)
 .env
 .env.local
+.env.production
+!.env.example
 
 # Node / frontend
 node_modules/
+dist/
 frontend/dist/
 
 # OS / editor

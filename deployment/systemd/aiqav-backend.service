@@ -1,0 +1,53 @@
+# systemd unit for the AIQAV FastAPI backend.
+#
+# Runs the FastAPI app (app.main:app) via Gunicorn with Uvicorn workers from the
+# backend virtual environment, as a dedicated non-root user. The service reads
+# runtime configuration (AWS region, Cognito IDs, feature flags, Secrets Manager
+# id, etc.) from an EnvironmentFile that is NOT committed to the repository.
+#
+# Install to: /etc/systemd/system/aiqav-backend.service
+# Then:       sudo systemctl daemon-reload && sudo systemctl enable --now aiqav-backend
+#
+# Placeholders / assumptions created by deployment/bootstrap.sh:
+#   - Application code:   /opt/aiqav/AI-Query-Analyser-Validator/backend
+#   - Virtual env:        /opt/aiqav/AI-Query-Analyser-Validator/backend/.venv
+#   - Runtime user/group: aiqav / aiqav
+#   - Environment file:   /etc/aiqav/backend.env
+
+[Unit]
+Description=AIQAV FastAPI backend (Gunicorn + Uvicorn workers)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=aiqav
+Group=aiqav
+
+WorkingDirectory=/opt/aiqav/AI-Query-Analyser-Validator/backend
+
+# Runtime secrets/config (never committed). See deployment/README.md.
+EnvironmentFile=/etc/aiqav/backend.env
+
+# Gunicorn with Uvicorn workers binds to localhost:8000; Nginx proxies to it.
+# Tune --workers for the t3.micro (2 vCPU): 2 is a safe default.
+ExecStart=/opt/aiqav/AI-Query-Analyser-Validator/backend/.venv/bin/gunicorn \
+    app.main:app \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --workers 2 \
+    --bind 127.0.0.1:8000 \
+    --timeout 60 \
+    --access-logfile - \
+    --error-logfile -
+
+Restart=always
+RestartSec=3
+
+# Basic hardening.
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

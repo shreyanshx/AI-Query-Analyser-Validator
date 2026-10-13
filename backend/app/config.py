@@ -104,6 +104,23 @@ class Settings(BaseSettings):
         )
 
     @property
+    def cognito_fully_configured(self) -> bool:
+        """True only when BOTH the user pool id and app client id are set.
+
+        Both are required to make JWT verification airtight: the pool id derives
+        the issuer (and JWKS URL), and the app client id scopes a token to this
+        application via the audience / ``client_id`` check. If either is missing,
+        protected routes must fail closed rather than accept any Cognito-signed
+        token (see :meth:`CognitoVerifier.verify_token`).
+        """
+        return bool(self.COGNITO_USER_POOL_ID) and bool(self.COGNITO_APP_CLIENT_ID)
+
+    @property
+    def cors_is_localhost_default(self) -> bool:
+        """True when CORS_ORIGINS is still the convenience localhost default."""
+        return self.CORS_ORIGINS.strip() == "http://localhost:5173"
+
+    @property
     def cors_origins_list(self) -> list[str]:
         """CORS origins as a list, split on commas and whitespace-trimmed."""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
