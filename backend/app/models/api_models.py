@@ -62,21 +62,47 @@ class ValidationResult(BaseModel):
     is_valid: bool = False
 
 
+class Optimization(BaseModel):
+    """A single rule-based optimization finding.
+
+    ``rewritten_sql`` is populated only when a rule can propose a concrete
+    rewrite. Performance implications are always estimates (see
+    ``performance_note`` on the response).
+    """
+
+    rule: str
+    severity: str = "info"
+    message: str
+    rewritten_sql: str | None = None
+
+
 class OptimizeRequest(BaseModel):
-    """Request to produce an AI optimization suggestion for SQL."""
+    """Request to produce an optimization suggestion for SQL."""
 
     sql: str
     dialect: str = "postgres"
     connection_id: str | None = None
+    use_ai: bool = False
 
 
 class OptimizeResponse(BaseModel):
-    """Normalized AI optimization suggestion result."""
+    """Normalized optimization suggestion result.
+
+    The rule-based engine always populates ``optimizations`` and
+    ``rewritten_sql``. The AI layer (added in FEAT-003) may additionally set
+    ``suggested_sql`` / ``explanation`` / ``provider`` and revalidate its
+    suggestion with the deterministic validator (``is_suggestion_valid``).
+    """
 
     original_sql: str
-    suggested_sql: str
-    explanation: str
-    optimizations: list[str] = Field(default_factory=list)
-    provider: str
-    is_suggestion_valid: bool
-    performance_note: str
+    rewritten_sql: str | None = None
+    optimizations: list[Optimization] = Field(default_factory=list)
+    performance_note: str = (
+        "Performance impact is an estimate from static analysis; it is not based "
+        "on query execution or EXPLAIN plans."
+    )
+    # AI-related fields; left unset by the rule-based engine.
+    suggested_sql: str | None = None
+    explanation: str | None = None
+    provider: str | None = None
+    is_suggestion_valid: bool | None = None

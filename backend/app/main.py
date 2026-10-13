@@ -10,7 +10,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import connections, health
+from app.api import connections, health, optimize, validate
 from app.config import Settings, get_settings
 from app.logging_utils import configure_logging
 
@@ -38,6 +38,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     # Authenticated routers (auth enforced per-route via get_current_user).
     app.include_router(connections.router)
+    app.include_router(validate.router)
+    app.include_router(optimize.router)
 
     return app
 

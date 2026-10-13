@@ -39,6 +39,16 @@ def _get_schema_service(request: Request) -> SchemaService:
     return service
 
 
+def get_connection_config(cognito_sub: str, connection_id: str) -> ConnectionConfig | None:
+    """Return a stored connection config for a user, or ``None`` if unknown.
+
+    Used by the validate/optimize routers to resolve a ``connection_id`` into
+    the connection metadata needed for schema-aware analysis.
+    """
+    with _store_lock:
+        return _connections.get(cognito_sub, {}).get(connection_id)
+
+
 def _to_info(connection_id: str, config: ConnectionConfig) -> ConnectionInfo:
     return ConnectionInfo(
         connection_id=connection_id,

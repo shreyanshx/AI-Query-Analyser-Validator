@@ -143,6 +143,20 @@ def fake_adapter() -> type[FakeAdapter]:
 
 
 @pytest.fixture
+def fixture_schema() -> NormalizedSchema:
+    """The fixture NormalizedSchema used by validator/optimizer unit tests."""
+    config = ConnectionConfig(
+        dialect="postgres",
+        host="db.example.com",
+        port=5432,
+        database="testdb",
+        username="reader",
+        password="super-secret-pw",
+    )
+    return FakeAdapter(config).introspect_schema()
+
+
+@pytest.fixture
 def app(signer: Signer, test_settings: Settings, fake_adapter: type[FakeAdapter]):
     from app.services.schema import SchemaService
 
