@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Core deterministic engine: SQLGlot-based syntax validation for ALL statement types across dialects, schema-aware validation against the cached normalized schema (unknown table/column detection), and the rule-based optimizer (remove SELECT *, index-friendly filter hints, join checks, index recommendations). This is the heart of the product and must be thoroughly unit-tested WITHOUT any live DB or AI. Exposes /api/validate and /api/optimize (rule-based part).",
+  "status": "pending",
+  "steps": [
+    "Create backend/app/services/validator.py: SqlValidator using sqlglot. parse(sql, dialect) with sqlglot.parse (handles multiple statements, CTEs, DDL, DML, transactions, grants, views, procedures where the parser supports). Collect ParseError -> structured syntax_errors with message and position when available. Classify each statement type. Function validate_syntax(sql, dialect) -> {statements, syntax_errors, is_valid}. Support dialects: postgres, mysql, tsql, sqlite, oracle (map friendly names).",
+    "In validator.py add validate_against_schema(parsed, normalized_schema): walk the sqlglot AST to collect referenced tables and columns (resolving aliases and CTE names which are NOT schema errors), compare against normalized schema (case-insensitive, respecting CTE/derived-table scope), produce schema_errors for unknown tables and unknown columns, and warnings (e.g. ambiguous column, column referenced without table in multi-table query). NEVER execute SQL. Return combined ValidationResult.",
+    "Create backend/app/services/optimizer.py: RuleBasedOptimizer.optimize(sql, dialect, normalized_schema) returning a list of Optimization{rule, severity, message, rewritten_sql?} plus a best-effort rewritten query. Rules: (1) SELECT * -> expand/flag to explicit needed columns using schema; (2) detect missing WHERE on UPDATE/DELETE (warning); (3) suggest indexes for columns used in WHERE/JOIN/ORDER BY that are not already indexed per schema; (4) flag leading-wildcard LIKE '%x' as non-index-friendly; (5) flag functions wrapped around indexed filter columns (non-sargable); (6) detect implicit cross joins / missing join conditions; (7) suggest LIMIT for unbounded exploratory SELECTs. Each rule is a small pure function over the AST + schema so it is unit-testable. Mark performance claims as estimates.",
+    "Create backend/app/api/validate.py: POST /api/validate (auth required) taking ValidateRequest; loads cached schema if a connection_id is given (schema errors) else syntax-only; returns ValidationResult. Create backend/app/api/optimize.py: POST /api/optimize returning rule-based optimizations and rewritten_sql; the AI part is added in FEAT-003 (leave a clearly marked integration point / call into a function that FEAT-003 fills in, defaulting to rule-based only).",
+    "Wire validate and optimize routers into main.py behind get_current_user.",
+    "Create backend/tests/test_validator.py: cover valid SELECT/INSERT/UPDATE/DELETE/CREATE TABLE/CTE/transaction parse as valid; malformed SQL yields syntax_errors; schema validation flags unknown table and unknown column against the fixture schema; a CTE name and table alias are NOT reported as unknown; multi-dialect parse smoke test (postgres + mysql). Assert the validator never calls any DB execute (there is no execution path).",
+    "Create backend/tests/test_optimizer.py: SELECT * on orders yields a 'select-star' optimization with a rewrite listing explicit columns; UPDATE without WHERE yields a warning; a WHERE on a non-indexed column yields an index suggestion while a WHERE on an indexed column (users.id PK) does not; LIKE '%foo' yields a non-sargable warning; a function-wrapped filter yields a non-sargable warning. Tests use the fixture NormalizedSchema only - no live DB.",
+    "Run ruff/black/pytest and fix until green."
+  ],
+  "acceptance_criteria": [
+    "`uv run pytest -q backend/tests/test_validator.py backend/tests/test_optimizer.py` passes",
+    "Validator parses all tested statement types across at least postgres and mysql dialects and reports structured syntax errors for malformed SQL",
+    "Schema validation flags unknown tables/columns but does NOT flag CTE names or aliases, using the cached normalized schema",
+    "Optimizer produces the documented rules' outputs over the fixture schema and labels performance as estimates; no code path executes SQL",
+    "ruff check and black --check still pass"
+  ],
+  "verification": [
+    "cd backend && uv run ruff check . && uv run black --check . && uv run pytest -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

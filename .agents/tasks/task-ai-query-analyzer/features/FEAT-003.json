@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "AI provider abstraction with the configurable fallback chain (Gemini -> Bedrock -> OpenAI -> Anthropic). Each provider implemented against its real HTTP/SDK API, normalized to one internal AISuggestion shape. Orchestrator skips unconfigured providers, falls back only on timeout/5xx/429/quota/model-unavailable (NOT safety refusals), and re-validates every AI SQL suggestion with the FEAT-002 validator before marking it valid. Credentials never sent to browser or logged. Fully covered by mocked tests (respx/monkeypatch) with no live keys.",
+  "status": "pending",
+  "steps": [
+    "Create backend/app/ai/base.py: AIProvider abstract class with name, is_configured() (based on settings), and async suggest(prompt_context) -> AISuggestion. Define AISuggestion pydantic model {suggested_sql, explanation, optimizations[], provider, raw_notes?}. Define exceptions ProviderUnavailable (triggers fallback: timeout/5xx/429/quota/model-unavailable) vs ProviderRefusal/ProviderError (does NOT trigger fallback).",
+    "Create backend/app/ai/prompt.py: build a prompt from the user's SQL + normalized schema summary (tables/columns/indexes) + dialect, instructing the model to return corrected/optimized SQL + explanation + optimization list as strict JSON. NEVER include DB credentials or raw sampled sensitive values beyond the opt-in schema context. Include a parser that extracts the JSON result and maps to AISuggestion.",
+    "Create provider impls under backend/app/ai/providers/: gemini.py (Google Generative Language REST API, model like gemini-1.5-flash via httpx with API key), bedrock.py (boto3 bedrock-runtime invoke_model using EC2 IAM role / default credential chain, no static key), openai.py (chat completions via httpx), anthropic.py (messages API via httpx). Each maps HTTP 429/5xx/timeouts to ProviderUnavailable, parses response via prompt.py, returns AISuggestion. is_configured() reflects whether its credentials/region are present.",
+    "Create backend/app/ai/orchestrator.py: AIOrchestrator reads AI_PROVIDER_ORDER, instantiates providers, iterates in order skipping unconfigured ones, calls suggest(); on ProviderUnavailable moves to next provider; on ProviderRefusal/ProviderError stops (does not fall back). Returns the first AISuggestion plus which provider served it. If none configured or all unavailable, raises AllProvidersUnavailable so the API can degrade gracefully.",
+    "Update backend/app/api/optimize.py: after producing rule-based optimizations, call the orchestrator to get an AI suggestion (best-effort). Re-validate the AI suggested_sql with SqlValidator (syntax + schema) and set is_suggestion_valid accordingly; if AI unavailable, return rule-based result with ai_available=false and a message. Never block the deterministic result on AI.",
+    "Create backend/tests/test_ai_orchestrator.py using monkeypatch/respx with NO live keys: (a) first provider raises ProviderUnavailable -> orchestrator falls back to the next and returns its suggestion; (b) a ProviderRefusal does NOT trigger fallback; (c) unconfigured providers are skipped; (d) all-unavailable raises AllProvidersUnavailable; (e) an AI suggestion with bad SQL is re-validated and marked is_suggestion_valid=false. Use fake providers / mocked httpx so no network is hit.",
+    "Create backend/tests/test_ai_providers.py: for at least gemini and openai, use respx to mock the HTTP endpoint and assert a 200 JSON body is parsed into AISuggestion, a 429 raises ProviderUnavailable, and the API key is read from settings (and never appears in the returned AISuggestion). Bedrock test uses a stubbed boto3 client.",
+    "Run ruff/black/pytest and fix until green."
+  ],
+  "acceptance_criteria": [
+    "`uv run pytest -q backend/tests/test_ai_orchestrator.py backend/tests/test_ai_providers.py` passes with no network access and no real API keys (all mocked)",
+    "Orchestrator falls back on ProviderUnavailable, skips unconfigured providers, and does NOT fall back on ProviderRefusal",
+    "Every AI-suggested SQL is re-validated by SqlValidator before is_suggestion_valid is set true",
+    "Provider credentials are read from settings/IAM only and never present in AISuggestion or logs",
+    "ruff check and black --check pass"
+  ],
+  "verification": [
+    "cd backend && uv run ruff check . && uv run black --check . && uv run pytest -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

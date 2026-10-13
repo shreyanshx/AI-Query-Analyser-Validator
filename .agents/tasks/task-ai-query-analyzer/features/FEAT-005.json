@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-005",
+  "type": "docs",
+  "description": "Raw-EC2 deployment assets and project documentation. Nginx config serving the React build + reverse-proxying /api to local FastAPI; systemd unit running FastAPI via Gunicorn+Uvicorn workers; a bootstrap script to set up a fresh EC2 t3.micro (install Python 3.11, Node, Nginx; build frontend; create venv; enable services); infra notes for ALB/ACM/Route53/Cognito/Secrets Manager/CloudWatch. Root .env.example (placeholders only), README.md, and .gitignore. No Docker.",
+  "status": "pending",
+  "steps": [
+    "Create deployment/nginx/aiqav.conf: server block serving the React build from /var/www/aiqav (try_files for SPA fallback to index.html) and location /api/ proxy_pass to http://127.0.0.1:8000 with proxy headers; a /health passthrough for the ALB target group. Document that TLS terminates at the ALB (HTTP between ALB and Nginx).",
+    "Create deployment/systemd/aiqav-backend.service: runs gunicorn with uvicorn workers (app.main:app) from the backend venv as a non-root user, EnvironmentFile pointing to /etc/aiqav/backend.env, Restart=always, WantedBy=multi-user.target.",
+    "Create deployment/bootstrap.sh: idempotent bash for Amazon Linux 2023/Ubuntu that installs Python 3.11, Node 20+, Nginx; clones/pulls the repo; builds frontend (npm ci && npm run build) and copies dist to /var/www/aiqav; creates the backend venv and installs backend deps; installs the nginx conf and systemd unit; enables+starts services. Include clear comments and placeholders where account-specific values go. set -euo pipefail.",
+    "Create deployment/README.md (or deployment/INFRA.md): step-by-step notes for ALB + ACM HTTPS termination, target group health check on /health, Route 53 record, Cognito User Pool + public app client creation (callback/logout URLs, hosted-UI optional), Secrets Manager secret shape (JSON keys for AI providers) and the EC2 IAM role/instance profile granting secretsmanager:GetSecretValue + bedrock:InvokeModel + CloudWatch logs. Emphasize credentials never reach the browser.",
+    "Create root .env.example documenting EVERY config var for backend (AWS_REGION, COGNITO_USER_POOL_ID, COGNITO_APP_CLIENT_ID, AI_PROVIDER_ORDER, GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, BEDROCK_MODEL_ID, SECRETS_MANAGER_SECRET_ID, SCHEMA_CACHE_TTL_SECONDS, ENABLE_DATA_SAMPLING, EXPLAIN_ENABLED, CORS_ORIGINS) and frontend (VITE_COGNITO_USER_POOL_ID, VITE_COGNITO_APP_CLIENT_ID, VITE_AWS_REGION, VITE_API_BASE_URL) with placeholder values only - no real secrets.",
+    "Create root .gitignore covering: node_modules/, dist/, .venv/, venv/, __pycache__/, *.pyc, .env, .env.local, .pytest_cache/, .ruff_cache/, .mypy_cache/, frontend build output, and OS files. Do NOT ignore .env.example.",
+    "Create root README.md: what the product is; architecture overview (React+FastAPI on one EC2 behind ALB, Cognito auth, SQLGlot validation, AI fallback chain, strict no-execution safety rule); local dev instructions (backend: uv venv + uv run uvicorn app.main:app --reload; frontend: npm install + npm run dev with proxy); testing instructions; and the EC2 deployment steps referencing deployment/. Include a prominent safety note that user and AI SQL are NEVER executed and credentials never reach the AI provider or browser.",
+    "Verify shell/script syntax: `bash -n deployment/bootstrap.sh`; confirm nginx conf and systemd unit are present and reference consistent paths/ports (8000) with the backend."
+  ],
+  "acceptance_criteria": [
+    "deployment/ contains nginx conf, systemd unit, bootstrap.sh (passes `bash -n`), and infra notes consistent with no-Docker raw-EC2 + ALB/ACM/Route53/Cognito/Secrets Manager",
+    "Root .env.example lists all backend and frontend config vars with placeholder values and no real secrets",
+    ".gitignore excludes node_modules, venv, __pycache__, dist, and .env but keeps .env.example",
+    "README.md explains the product, architecture, local dev, testing, deployment, and the no-execution safety guarantee",
+    "Nginx proxy target port matches the backend/systemd port (8000)"
+  ],
+  "verification": [
+    "bash -n deployment/bootstrap.sh && test -f deployment/nginx/aiqav.conf && test -f deployment/systemd/aiqav-backend.service && test -f .env.example && test -f README.md && test -f .gitignore"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

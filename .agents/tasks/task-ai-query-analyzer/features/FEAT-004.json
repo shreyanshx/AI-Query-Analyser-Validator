@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "React (Vite + TypeScript) SPA: Cognito auth flows (signup, email verification, login, logout, token refresh, forgot/reset password) using amazon-cognito-identity-js with a PUBLIC app client (no secret); DB connection manager UI; SQL editor with live (debounced) syntax + schema validation; results panel (syntax errors, schema errors, warnings); original-vs-suggested query comparison with explanation; copy/export. An authenticated API client attaches the Cognito access token and refreshes it. Must build with zero TypeScript errors.",
+  "status": "pending",
+  "steps": [
+    "Scaffold frontend/ with Vite React+TS: package.json (react, react-dom, react-router-dom, amazon-cognito-identity-js, @monaco-editor/react or CodeMirror for the SQL editor, axios), devDeps (typescript, vite, @vitejs/plugin-react, @types/*, eslint, prettier). Add tsconfig.json (strict), vite.config.ts (dev proxy /api -> http://localhost:8000), index.html, src/main.tsx, src/App.tsx with react-router routes.",
+    "Create src/config.ts reading Vite env vars (VITE_COGNITO_USER_POOL_ID, VITE_COGNITO_APP_CLIENT_ID, VITE_AWS_REGION, VITE_API_BASE_URL). Create src/auth/cognito.ts wrapping amazon-cognito-identity-js: signUp, confirmSignUp (email code), resendCode, signIn, signOut, getSession (with automatic refresh), forgotPassword, confirmForgotPassword. No client secret used.",
+    "Create src/auth/AuthContext.tsx (React context + provider) exposing user, tokens, and the auth methods; a RequireAuth route guard that redirects to /login. Create auth pages under src/pages/auth/: SignUp, ConfirmSignUp, Login, ForgotPassword, ResetPassword, plus logout action.",
+    "Create src/api/client.ts: axios instance with baseURL from config, request interceptor attaching the current Cognito access token (refreshing via getSession when near expiry), response interceptor redirecting to /login on 401. Typed functions: testConnection, getSchema, validateSql, optimizeSql matching backend api_models.",
+    "Create src/pages/ConnectionManager.tsx: form to enter DB connection (dialect select postgres/mysql/sqlserver/sqlite/oracle, host, port, db, user, password, optional 'enable data sampling' toggle, sensitive-columns-to-exclude field). Calls testConnection + getSchema; shows connection status and a schema tree (tables -> columns/indexes). Password field never persisted to localStorage.",
+    "Create src/pages/Analyzer.tsx: the main workspace. SQL editor component (src/components/SqlEditor.tsx) with debounced onChange (~400ms) that calls validateSql for live syntax + schema validation; a ResultsPanel (src/components/ResultsPanel.tsx) rendering syntax_errors, schema_errors, warnings with severity styling; an 'Analyze & Optimize' button calling optimizeSql; a ComparisonView (src/components/ComparisonView.tsx) showing original vs suggested SQL side by side with the explanation, the optimization list, the serving provider, an is_suggestion_valid badge, a performance-estimate disclaimer, and Copy + Export (download .sql) actions. Show a clear 'AI temporarily unavailable' notice when ai_available is false while still showing syntax/schema results.",
+    "Add src/index.css / basic layout + a top nav showing the logged-in user and logout. Keep styling lightweight (plain CSS or a small CSS file), no heavy UI dependency required.",
+    "Add frontend/.eslintrc + prettier config; ensure `npm install` then `npm run build` (tsc + vite build) completes with zero type errors. Add a couple of lightweight Vitest tests for pure helpers (e.g. token-near-expiry logic, export filename builder) if quick, but the build passing is the required gate."
+  ],
+  "acceptance_criteria": [
+    "`cd frontend && npm install && npm run build` completes with zero TypeScript errors and produces dist/",
+    "All six auth flows exist and are wired to amazon-cognito-identity-js with a public app client (no secret in code)",
+    "SQL editor triggers debounced live validation and the results panel renders syntax errors, schema errors, and warnings distinctly",
+    "Comparison view shows original vs suggested SQL, explanation, provider, validity badge, performance-estimate disclaimer, and copy/export; AI-unavailable state is handled without hiding syntax/schema results",
+    "The API client attaches the Cognito access token and handles 401 by redirecting to login; DB password is never written to localStorage"
+  ],
+  "verification": [
+    "cd frontend && npm install && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

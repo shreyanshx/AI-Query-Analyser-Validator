@@ -1,0 +1,30 @@
+{
+  "project_type": "Full-stack web app: React (Vite + TypeScript) SPA frontend + FastAPI (Python) backend, deployed on a single raw EC2 t3.micro behind an ALB. No Docker.",
+  "language": "Python 3.11 (backend), TypeScript/React (frontend)",
+  "build_system": "Backend: uv-managed venv with pip; project uses pyproject.toml. Frontend: npm + Vite. No monorepo tool - frontend/ and backend/ are independent subprojects.",
+  "test_framework": "Backend: pytest (tests under backend/tests). Frontend: Vitest optional; primary gate is `tsc`/`npm run build`.",
+  "build_command": "Backend: cd backend && uv venv --python 3.11 && uv pip install -e '.[dev]' then python -c 'import app.main'. Frontend: cd frontend && npm install && npm run build",
+  "test_command": "Backend: cd backend && uv run pytest -q. Frontend: cd frontend && npm run build (tsc build) ; optional: npx vitest run",
+  "verification_instructions": "1) Backend: create venv with Python 3.11 via uv, install deps, run `ruff check .`, `black --check .`, `pytest -q` (must pass without live DB or AI keys - all external calls mocked). 2) Frontend: `npm install` then `npm run build` must succeed with zero TypeScript errors. 3) Confirm app.main imports cleanly and /health route exists.",
+  "snapshot_or_generated_files": "frontend/dist is a build artifact (gitignored). No checked-in generated files.",
+  "setup_instructions": "Python 3.11 available via pyenv (3.11.15) and uv. Use `uv venv --python 3.11` for backend. Node 22 (npm 11) available for frontend. Network mode OPEN_INTERNET so pip/npm installs work.",
+  "environment_constraints": "Network mode OPEN_INTERNET: package installs from PyPI/npm work. No live SQL database and no live AI provider credentials in sandbox - every DB connection and AI provider call MUST be mockable and tests MUST NOT require them. Default system python is 3.9; MUST target 3.11 via uv/pyenv. No Docker daemon usage required by design (raw EC2 deployment).",
+  "contribution_requirements": "Authoritative spec: .kiro/steering/project-architecture.md. Hard rules: NEVER execute user or AI SQL; DB used only for connection test + schema introspection + opt-in sampling; Cognito public app client (no secret) for auth, backend validates JWT via JWKS; AI provider fallback chain Gemini->Bedrock->OpenAI->Anthropic, keys never sent to browser or logged; redact credentials in logs; isolate data by Cognito sub; serve React build via Nginx, FastAPI via systemd+gunicorn/uvicorn, ALB+ACM+Route53+CloudWatch+Secrets Manager.",
+  "key_patterns": "Backend: FastAPI app factory in backend/app/main.py; Pydantic settings in app/config.py reading env vars; routers under app/api/; services under app/services/ (validator, optimizer, schema, ai); DB adapters under app/db/ with a base interface + PostgreSQL impl; AI providers under app/ai/providers/ each returning a normalized AISuggestion. SQLGlot for parsing/validation across dialects. Tests mock DB adapters and AI providers.",
+  "relevant_files": [
+    "backend/app/main.py",
+    "backend/app/config.py",
+    "backend/app/api/*.py",
+    "backend/app/services/validator.py",
+    "backend/app/services/optimizer.py",
+    "backend/app/services/schema.py",
+    "backend/app/ai/orchestrator.py",
+    "backend/app/db/base.py",
+    "backend/tests/*",
+    "frontend/src/*",
+    "deployment/*",
+    ".env.example",
+    "README.md"
+  ],
+  "directory_structure": "frontend/ (React SPA), backend/ (FastAPI), deployment/ (nginx conf, systemd unit, bootstrap script, infra notes), root .env.example + README.md + .gitignore. Task state under .agents/tasks/."
+}

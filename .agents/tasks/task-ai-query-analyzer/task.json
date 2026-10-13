@@ -1,0 +1,7 @@
+{
+  "task_id": "task-ai-query-analyzer",
+  "task_description": "Build the complete MVP of the AI Query Analyser & Validator: a FastAPI backend + React SPA deployed on a single raw EC2 behind an ALB (no Docker). Features: Cognito auth, read-only DB schema introspection, SQLGlot-based syntax + schema validation for all statement types, a rule-based optimizer, and an AI suggestion layer with a configurable Gemini->Bedrock->OpenAI->Anthropic fallback chain. Hard safety rule: never execute user or AI SQL; credentials never reach the AI provider, browser, or logs. All conforms to .kiro/steering/project-architecture.md.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}
