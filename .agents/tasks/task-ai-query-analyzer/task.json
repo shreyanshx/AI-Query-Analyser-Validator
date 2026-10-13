@@ -1,7 +1,14 @@
 {
   "task_id": "task-ai-query-analyzer",
   "task_description": "Build the complete MVP of the AI Query Analyser & Validator: a FastAPI backend + React SPA deployed on a single raw EC2 behind an ALB (no Docker). Features: Cognito auth, read-only DB schema introspection, SQLGlot-based syntax + schema validation for all statement types, a rule-based optimizer, and an AI suggestion layer with a configurable Gemini->Bedrock->OpenAI->Anthropic fallback chain. Hard safety rule: never execute user or AI SQL; credentials never reach the AI provider, browser, or logs. All conforms to .kiro/steering/project-architecture.md.",
-  "status": "in_progress",
+  "status": "completed",
   "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "Backend: ruff clean, black clean, app.main imports, pytest 80 passed (no live DB/Cognito/AI needed - JWKS/DB/AI all mocked). Frontend: npm run build succeeds with zero TypeScript errors, emits dist/. Deployment: bootstrap.sh passes bash -n; nginx/systemd/bootstrap consistent on port 8000 and /var/www/aiqav; .env.example tracked, .env ignored. Test quality: validator/optimizer tests drive real logic against the fixture schema with positive AND negative cases (indexed PK -> no index suggestion, trailing wildcard not flagged, explicit CROSS JOIN not flagged, CTE/alias not treated as unknown) and would fail if logic were reverted; AI tests verify fallback-on-unavailable, no-fallback-on-refusal, skip-unconfigured, and AI-SQL re-validation, all mocked. Confirmed no SQL execution path exists in services/ai/api layers (db/ adapters do read-only introspection only). Docker build intentionally skipped: architecture is raw EC2 with NO Docker by design."
+  }
 }
