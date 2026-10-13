@@ -112,6 +112,61 @@ def test_unqualified_column_in_multi_table_warns(validator: SqlValidator, schema
     assert any("without a table qualifier" in w for w in result.warnings)
 
 
+def test_insert_column_list_against_schema_is_clean(validator: SqlValidator, schema) -> None:
+    """INSERT column lists on a known table must not surface schema errors."""
+    sql = "INSERT INTO users (id, email, created_at) VALUES (1, 'a@b.c', NOW())"
+    result = validator.validate(sql, schema=schema)
+    assert result.is_valid, result
+    assert result.schema_errors == []
+
+
+def test_insert_into_unknown_table_is_flagged(validator: SqlValidator, schema) -> None:
+    """INSERT into a table that is not in the schema is still flagged."""
+    result = validator.validate(
+        "INSERT INTO customers (id) VALUES (1)",
+        schema=schema,
+    )
+    assert not result.is_valid
+    assert any("customers" in err for err in result.schema_errors)
+
+
+def test_create_table_is_not_unknown_table(validator: SqlValidator, schema) -> None:
+    """CREATE TABLE defines a new object; it must not be an 'Unknown table'.
+
+    The columns declared in the definition are new and must not be compared
+    against the base schema either (issue #6 regression guard).
+    """
+    result = validator.validate(
+        "CREATE TABLE widgets (id integer PRIMARY KEY, name text)",
+        schema=schema,
+    )
+    assert result.is_valid, result
+    assert result.schema_errors == []
+    assert result.warnings == []
+
+
+def test_create_table_as_select_still_validates_source(validator: SqlValidator, schema) -> None:
+    """CREATE TABLE ... AS SELECT: the new table is fine, but a bad source is caught."""
+    good = validator.validate("CREATE TABLE t2 AS SELECT id FROM users", schema=schema)
+    assert good.is_valid, good
+    assert good.schema_errors == []
+
+    bad = validator.validate("CREATE TABLE t3 AS SELECT id FROM customers", schema=schema)
+    assert not bad.is_valid
+    assert any("customers" in err for err in bad.schema_errors)
+
+
+def test_create_index_target_table_is_validated(validator: SqlValidator, schema) -> None:
+    """CREATE INDEX ... ON references an existing table, which is still checked."""
+    good = validator.validate("CREATE INDEX idx_email ON users (email)", schema=schema)
+    assert good.is_valid, good
+    assert good.schema_errors == []
+
+    bad = validator.validate("CREATE INDEX idx_x ON customers (email)", schema=schema)
+    assert not bad.is_valid
+    assert any("customers" in err for err in bad.schema_errors)
+
+
 @pytest.mark.parametrize("dialect", ["postgres", "mysql"])
 def test_multi_dialect_parse_smoke(validator: SqlValidator, dialect: str) -> None:
     result = validator.validate_syntax("SELECT id FROM users LIMIT 5", dialect=dialect)

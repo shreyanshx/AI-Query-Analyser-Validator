@@ -170,6 +170,30 @@ class SqlValidator:
                 alias_names.add(subquery.alias.lower())
         return cte_names, alias_names
 
+    @staticmethod
+    def _created_table_name(expression: exp.Expression) -> str | None:
+        """Return the lower-cased name of a table/view defined by a CREATE.
+
+        For ``CREATE TABLE foo (...)`` (and ``CREATE TABLE foo AS SELECT ...``)
+        ``foo`` is a *new* object being defined, not a reference to an existing
+        schema table, so it must not be flagged as an unknown table. The columns
+        declared in its definition are likewise new and must not be checked
+        against the base schema. ``CREATE INDEX ... ON existing_table`` is not a
+        table definition, so its ``ON`` target is still validated normally.
+        """
+        if not isinstance(expression, exp.Create):
+            return None
+        if (expression.kind or "").upper() not in ("TABLE", "VIEW"):
+            return None
+        target = expression.this
+        # ``CREATE TABLE foo (...)`` -> this is a Schema wrapping the Table;
+        # ``CREATE TABLE foo AS SELECT`` -> this is the Table directly.
+        if isinstance(target, exp.Schema):
+            target = target.this
+        if isinstance(target, exp.Table):
+            return target.name.lower()
+        return None
+
     def validate_against_schema(
         self,
         parsed: exp.Expression,
@@ -190,18 +214,28 @@ class SqlValidator:
         table_columns = self._schema_lookup(schema)
         cte_names, _alias_names = self._collect_scope_names(parsed)
 
+        # A table defined by this statement (CREATE TABLE/VIEW) is a brand-new
+        # object, not a reference to an existing schema table. Treat it as a
+        # local scope so neither the table nor its freshly declared columns are
+        # reported as "unknown". Tables referenced by a CREATE ... AS SELECT are
+        # still validated because only the created name is excluded here.
+        created_table = self._created_table_name(parsed)
+        local_scope_names: set[str] = set(cte_names)
+        if created_table is not None:
+            local_scope_names.add(created_table)
+
         # Map an alias (or table name used as its own alias) -> real table name,
         # so qualified columns can be checked against the right table.
         alias_to_table: dict[str, str] = {}
         real_tables_in_query: set[str] = set()
         # Qualifiers that resolve to a CTE/derived scope (columns are produced
         # by a subquery and cannot be checked against the base schema).
-        scope_qualifiers: set[str] = set(cte_names)
+        scope_qualifiers: set[str] = set(local_scope_names)
 
         for table in parsed.find_all(exp.Table):
             name = table.name.lower()
             is_real = name in table_columns
-            is_scope = name in cte_names
+            is_scope = name in local_scope_names
             if not is_real and not is_scope:
                 schema_errors.append(f"Unknown table: {table.name}")
                 continue

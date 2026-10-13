@@ -132,6 +132,13 @@ export function ConnectionManager(): JSX.Element {
             ))}
           </select>
         </label>
+        {dialect !== 'postgres' && (
+          <p className="field-note" role="note">
+            Live connections (test, schema introspection, schema-aware analysis) currently
+            support PostgreSQL only. Other dialects are supported for syntax validation,
+            but connecting with them is not yet implemented.
+          </p>
+        )}
         <label>
           Host
           <input value={host} onChange={(e) => setHost(e.target.value)} required />

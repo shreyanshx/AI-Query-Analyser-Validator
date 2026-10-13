@@ -31,6 +31,21 @@ and rewrite suggestions grounded in your real schema.
   backend validates JWTs and isolates each user's connections and analyses by
   their Cognito `sub`.
 
+## Known limitations (MVP scope)
+
+- **Live-database features are PostgreSQL-only.** Syntax validation works across
+  all listed dialects (PostgreSQL, MySQL, SQL Server, SQLite, Oracle) via
+  SQLGlot, but anything that needs a live connection - connection testing,
+  schema introspection, and opt-in data sampling - is implemented only for
+  PostgreSQL. Selecting another dialect for a *live connection* raises
+  `NotImplementedError`; its schema-aware validation and AI suggestions are not
+  available until that adapter is added (`backend/app/db/factory.py`). You can
+  still run dialect-aware **syntax** validation for any supported dialect
+  without a connection. The dialect dropdown in the SPA reflects parse-time
+  support; schema-aware features assume a PostgreSQL connection.
+- **Performance findings are estimates.** Optimizations come from static AST
+  analysis, not query plans; `EXPLAIN`-based planning is gated off by default.
+
 ## Architecture
 
 A React (Vite + TypeScript) SPA and a FastAPI (Python 3.11) backend run on **one

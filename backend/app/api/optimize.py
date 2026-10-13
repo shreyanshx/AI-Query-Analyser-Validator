@@ -135,7 +135,7 @@ def optimize_sql(
     request: Request,
     user: CurrentUser = Depends(get_current_user),
 ) -> OptimizeResponse:
-    """Return rule-based optimizations (and AI suggestions once FEAT-003 lands)."""
+    """Return rule-based optimizations and, when ``use_ai`` is set, a re-validated AI suggestion."""
     schema: NormalizedSchema | None = None
     if payload.connection_id:
         config = get_connection_config(user.sub, payload.connection_id)
