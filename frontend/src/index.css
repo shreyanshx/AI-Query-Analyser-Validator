@@ -1,0 +1,405 @@
+:root {
+  --bg: #0f172a;
+  --surface: #ffffff;
+  --border: #d7dce3;
+  --text: #1f2933;
+  --muted: #6b7280;
+  --primary: #2563eb;
+  --error: #dc2626;
+  --warning: #b45309;
+  --ok: #15803d;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: #f3f4f6;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary);
+  padding: 0;
+  text-decoration: underline;
+}
+
+input,
+select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.checkbox-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+/* --- Auth pages --- */
+.auth-card {
+  max-width: 380px;
+  margin: 4rem auto;
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.auth-card h1 {
+  margin-top: 0;
+}
+
+.auth-card button[type='submit'] {
+  width: 100%;
+}
+
+.auth-links {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  gap: 1rem;
+}
+
+.form-error {
+  color: var(--error);
+  font-size: 0.85rem;
+}
+
+.form-notice {
+  color: var(--ok);
+  font-size: 0.85rem;
+}
+
+.page-center {
+  text-align: center;
+  margin-top: 4rem;
+}
+
+/* --- App shell --- */
+.app-shell {
+  min-height: 100vh;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: var(--bg);
+  color: #fff;
+  padding: 0.75rem 1.5rem;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 1rem;
+  flex: 1;
+}
+
+.navbar a {
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.navbar a.active {
+  color: #fff;
+  font-weight: 600;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.navbar-username {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+}
+
+.navbar .link-button {
+  color: #fff;
+}
+
+.app-main {
+  max-width: 1100px;
+  margin: 1.5rem auto;
+  padding: 0 1.5rem;
+}
+
+.page h1 {
+  margin-top: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.8rem;
+}
+
+/* --- Connection manager --- */
+.connection-form {
+  max-width: 480px;
+  background: var(--surface);
+  padding: 1.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.connection-status {
+  margin-top: 1.5rem;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.connection-list {
+  margin-top: 1.5rem;
+}
+
+.schema-tree {
+  list-style: none;
+  padding-left: 0;
+}
+
+.schema-tree li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+/* --- Analyzer --- */
+.analyzer-toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.analyzer-toolbar label {
+  margin-bottom: 0;
+  min-width: 160px;
+}
+
+.analyzer-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 860px) {
+  .analyzer-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sql-editor {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.results-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  min-height: 320px;
+}
+
+.validity-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.validity-badge.ok {
+  background: #dcfce7;
+  color: var(--ok);
+}
+
+.validity-badge.bad {
+  background: #fee2e2;
+  color: var(--error);
+}
+
+.result-section {
+  margin-bottom: 0.75rem;
+}
+
+.result-section h4 {
+  margin: 0 0 0.25rem;
+}
+
+.result-error h4 {
+  color: var(--error);
+}
+
+.result-warning h4 {
+  color: var(--warning);
+}
+
+.result-ok {
+  color: var(--ok);
+}
+
+.inline-spinner {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* --- Comparison view --- */
+.comparison-view {
+  margin-top: 2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1.25rem;
+}
+
+.ai-unavailable {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: var(--warning);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.comparison-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 860px) {
+  .comparison-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comparison-col-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.copy-export {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.copy-export button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.sql-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 0.8rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+}
+
+.suggestion-meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 1rem 0;
+}
+
+.meta-chip {
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.optimizations ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.optimizations li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.opt-rule {
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.opt-severity {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.5rem;
+}
+
+.perf-disclaimer {
+  margin-top: 1rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: italic;
+}
