@@ -10,13 +10,13 @@ def test_health_is_public(client):
 
 
 def test_protected_route_without_token_is_401(client, sample_connection):
-    resp = client.post("/connections/test", json=sample_connection)
+    resp = client.post("/api/connections/test", json=sample_connection)
     assert resp.status_code == 401
 
 
 def test_protected_route_with_invalid_token_is_401(client, sample_connection):
     resp = client.post(
-        "/connections/test",
+        "/api/connections/test",
         json=sample_connection,
         headers={"Authorization": "Bearer not-a-real-token"},
     )
@@ -26,7 +26,7 @@ def test_protected_route_with_invalid_token_is_401(client, sample_connection):
 def test_protected_route_with_valid_token_is_200(client, signer, sample_connection):
     token = signer.sign(sub="user-abc")
     resp = client.post(
-        "/connections/test",
+        "/api/connections/test",
         json=sample_connection,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -41,7 +41,7 @@ def test_protected_route_with_valid_token_is_200(client, signer, sample_connecti
 def test_expired_token_is_401(client, signer, sample_connection):
     token = signer.sign(sub="user-abc", expires_in=-10)
     resp = client.post(
-        "/connections/test",
+        "/api/connections/test",
         json=sample_connection,
         headers={"Authorization": f"Bearer {token}"},
     )

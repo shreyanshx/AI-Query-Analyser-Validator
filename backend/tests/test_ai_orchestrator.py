@@ -171,7 +171,7 @@ def test_optimize_ai_bad_sql_is_revalidated_false(client, app, signer) -> None:
 
     # connection_id is needed so a schema is loaded for schema validation.
     create = client.post(
-        "/connections/test",
+        "/api/connections/test",
         json={
             "dialect": "postgres",
             "host": "db.example.com",

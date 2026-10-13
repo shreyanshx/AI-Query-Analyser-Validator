@@ -15,7 +15,7 @@ def _auth(signer):
 
 
 def _create_connection(client, signer, sample_connection) -> str:
-    resp = client.post("/connections/test", json=sample_connection, headers=_auth(signer))
+    resp = client.post("/api/connections/test", json=sample_connection, headers=_auth(signer))
     assert resp.status_code == 200
     return resp.json()["connection"]["connection_id"]
 

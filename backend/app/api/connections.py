@@ -24,7 +24,7 @@ from app.services.schema import SchemaService
 
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/connections", tags=["connections"])
+router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 # In-memory per-user connection store: {sub: {connection_id: ConnectionConfig}}.
 _connections: dict[str, dict[str, ConnectionConfig]] = {}
