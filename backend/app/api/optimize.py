@@ -6,37 +6,52 @@ from static AST analysis; no SQL is ever executed.
 
 AI integration point
 ---------------------
-FEAT-003 will add an AI optimization layer. The call site is isolated in
-:func:`_ai_optimize`, which currently returns ``None`` (rule-based only). When
-the AI layer lands it will:
+The AI optimization layer is isolated in :func:`_ai_optimize`. It is
+best-effort and never blocks the deterministic rule-based result:
 
-* produce an ``AISuggestion`` through the provider abstraction / fallback chain,
-* re-validate the suggested SQL with :class:`SqlValidator` against the same
-  cached schema before marking it valid, and
-* populate ``suggested_sql`` / ``explanation`` / ``provider`` /
-  ``is_suggestion_valid`` on the response.
+* it produces an ``AISuggestion`` through the provider abstraction / fallback
+  chain (:class:`AIOrchestrator`),
+* re-validates the suggested SQL with :class:`SqlValidator` against the same
+  cached schema and sets ``is_suggestion_valid`` accordingly, and
+* populates ``suggested_sql`` / ``explanation`` / ``provider`` on the response.
 
-Until then the endpoint defaults to rule-based output only, even when
-``use_ai`` is requested.
+When no provider is configured or all are unavailable, the response keeps the
+rule-based output and signals ``ai_available=false`` with a message. Provider
+credentials are read from settings / IAM only and are never returned or logged.
 """
 
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
+from app.ai.base import AllProvidersUnavailable, ProviderRefusal
+from app.ai.orchestrator import AIOrchestrator
+from app.ai.prompt import PromptContext
 from app.api.connections import get_connection_config
 from app.auth.deps import CurrentUser, get_current_user
 from app.logging_utils import get_logger
-from app.models.api_models import OptimizeRequest, OptimizeResponse
+from app.models.api_models import Optimization, OptimizeRequest, OptimizeResponse
 from app.models.schema_models import NormalizedSchema
 from app.services.optimizer import RuleBasedOptimizer
 from app.services.schema import SchemaService
+from app.services.validator import SqlValidator
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api", tags=["optimize"])
 
 _optimizer = RuleBasedOptimizer()
+_validator = SqlValidator()
+
+
+def _get_orchestrator(request: Request) -> AIOrchestrator:
+    orchestrator = getattr(request.app.state, "ai_orchestrator", None)
+    if orchestrator is None:
+        orchestrator = AIOrchestrator()
+        request.app.state.ai_orchestrator = orchestrator
+    return orchestrator
 
 
 def _get_schema_service(request: Request) -> SchemaService:
@@ -53,14 +68,65 @@ def _ai_optimize(
     payload: OptimizeRequest,
     schema: NormalizedSchema | None,
     response: OptimizeResponse,
-) -> OptimizeResponse | None:
-    """AI optimization integration point (filled in by FEAT-003).
+) -> OptimizeResponse:
+    """Enrich ``response`` with a best-effort, re-validated AI suggestion.
 
-    Returns ``None`` today so the endpoint defaults to rule-based output. The
-    FEAT-003 implementation will enrich ``response`` with an AI suggestion that
-    has been re-validated by the deterministic validator.
+    This never raises for AI-side problems and never blocks the deterministic
+    result. When a provider produces a suggestion, the suggested SQL is
+    re-validated with :class:`SqlValidator` against the same cached schema and
+    ``is_suggestion_valid`` is set from that deterministic check. When AI is
+    unavailable (nothing configured / all unavailable) or refuses / errors,
+    the rule-based ``response`` is returned with ``ai_available=False`` and a
+    short message.
     """
-    return None
+    orchestrator = _get_orchestrator(request)
+    context = PromptContext.from_schema(payload.sql, dialect=payload.dialect, schema=schema)
+
+    try:
+        suggestion = asyncio.run(orchestrator.suggest(context))
+    except AllProvidersUnavailable:
+        response.ai_available = False
+        response.ai_message = (
+            "AI suggestions are temporarily unavailable; showing rule-based results."
+        )
+        return response
+    except ProviderRefusal:
+        response.ai_available = False
+        response.ai_message = "The AI provider declined to answer this request."
+        return response
+    except Exception:  # noqa: BLE001 - AI is best-effort, never block results
+        logger.warning("AI optimization failed for user %s", user.sub)
+        response.ai_available = False
+        response.ai_message = "AI suggestions could not be produced; showing rule-based results."
+        return response
+
+    # Re-validate the AI suggestion deterministically before trusting it.
+    validation = _validator.validate(
+        suggestion.suggested_sql, dialect=payload.dialect, schema=schema
+    )
+
+    response.ai_available = True
+    response.provider = suggestion.provider
+    response.suggested_sql = suggestion.suggested_sql
+    response.explanation = suggestion.explanation
+    response.is_suggestion_valid = validation.is_valid
+    if suggestion.optimizations:
+        # Surface AI-named optimizations as info-level findings alongside the
+        # rule-based ones, clearly attributed to the provider.
+        for item in suggestion.optimizations:
+            response.optimizations.append(
+                Optimization(
+                    rule="ai-suggestion",
+                    severity="info",
+                    message=item,
+                )
+            )
+    if not validation.is_valid:
+        response.ai_message = (
+            "The AI suggestion did not pass deterministic validation and is "
+            "flagged as not validated."
+        )
+    return response
 
 
 @router.post("/optimize", response_model=OptimizeResponse)
@@ -96,8 +162,6 @@ def optimize_sql(
     )
 
     if payload.use_ai:
-        ai_response = _ai_optimize(request, user, payload, schema, response)
-        if ai_response is not None:
-            return ai_response
+        return _ai_optimize(request, user, payload, schema, response)
 
     return response

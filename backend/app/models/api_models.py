@@ -106,3 +106,9 @@ class OptimizeResponse(BaseModel):
     explanation: str | None = None
     provider: str | None = None
     is_suggestion_valid: bool | None = None
+    # Best-effort AI availability signalling. ``ai_available`` is True only
+    # when a provider actually produced a suggestion. When AI is requested but
+    # unavailable (no provider configured, all unavailable, or an error),
+    # ``ai_message`` explains why while the deterministic result stands.
+    ai_available: bool = False
+    ai_message: str | None = None
