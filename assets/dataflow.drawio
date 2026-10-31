@@ -1,0 +1,25 @@
+<mxfile host="app.diagrams.net" modified="2026-10-31T00:00:00.000Z" agent="kiro" version="24.0.0" type="device">
+  <diagram id="flow" name="Data Flow">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="s1" value="1&#10;SQL Editor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E9BD6;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="120" width="320" height="150" as="geometry" /></mxCell>
+        <mxCell id="s2" value="2&#10;Syntax Validation&#10;(SQLGlot)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="620" y="120" width="320" height="150" as="geometry" /></mxCell>
+        <mxCell id="s3" value="3&#10;Schema-Aware&#10;Validation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1160" y="120" width="320" height="150" as="geometry" /></mxCell>
+        <mxCell id="s4" value="4&#10;AI Analysis&#10;(+ fallback)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E89A2B;fontColor=#142A52;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="1160" y="400" width="320" height="150" as="geometry" /></mxCell>
+        <mxCell id="s5" value="5&#10;Re-validate AI Output" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="620" y="400" width="320" height="150" as="geometry" /></mxCell>
+        <mxCell id="s6" value="6&#10;Result &amp; Explanation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F5FA8;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1"><mxGeometry x="80" y="400" width="320" height="150" as="geometry" /></mxCell>
+
+        <mxCell id="f1" style="endArrow=block;html=1;strokeColor=#142A52;strokeWidth=2" edge="1" parent="1" source="s1" target="s2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f2" style="endArrow=block;html=1;strokeColor=#142A52;strokeWidth=2" edge="1" parent="1" source="s2" target="s3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f3" style="endArrow=block;html=1;strokeColor=#142A52;strokeWidth=2" edge="1" parent="1" source="s3" target="s4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f4" style="endArrow=block;html=1;strokeColor=#142A52;strokeWidth=2" edge="1" parent="1" source="s4" target="s5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="f5" style="endArrow=block;html=1;strokeColor=#142A52;strokeWidth=2" edge="1" parent="1" source="s5" target="s6"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="safety" value="SAFETY: user SQL and AI-generated SQL are NEVER executed — only parsed &amp; validated" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0484A;fontColor=#FFFFFF;strokeColor=none;fontSize=13;fontStyle=1" vertex="1" parent="1"><mxGeometry x="340" y="600" width="900" height="70" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

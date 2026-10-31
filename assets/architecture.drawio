@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net" modified="2026-10-31T00:00:00.000Z" agent="kiro" version="24.0.0" type="device">
+  <diagram id="arch" name="Architecture">
+    <mxGraphModel dx="1400" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="user" value="User&#10;(Browser)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5A5A5A;fontColor=#FFFFFF;strokeColor=none;fontSize=14;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="40" y="380" width="150" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="alb" value="AWS ALB&#10;HTTPS / ACM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F5FA8;fontColor=#FFFFFF;strokeColor=none;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="250" y="380" width="170" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ec2" value="AWS EC2 (t3.micro) — no Docker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDF3FB;strokeColor=#1F5FA8;fontColor=#142A52;fontSize=14;fontStyle=1;verticalAlign=top;align=center;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="500" y="120" width="560" height="640" as="geometry" />
+        </mxCell>
+        <mxCell id="nginx" value="Nginx (serves React SPA + proxies /api)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#142A52;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="530" y="180" width="500" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="react" value="React SPA&#10;(SQL editor + results)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2E9BD6;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="530" y="270" width="230" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="fastapi" value="FastAPI backend (/api)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="790" y="270" width="230" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlglot" value="SQLGlot Validator" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="530" y="380" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="opt" value="Rule-based Optimizer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="790" y="380" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="cache" value="Schema Cache (per user)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="530" y="480" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" value="Cognito JWT Auth" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F9E8A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="790" y="480" width="230" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="aiabs" value="AI Provider Abstraction (fallback chain)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E89A2B;fontColor=#142A52;strokeColor=none;fontSize=13;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="530" y="580" width="490" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="User Databases&#10;(read-only metadata only)" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#5A5A5A;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1160" y="220" width="280" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ai" value="AI Providers&#10;Gemini → Bedrock → OpenAI → Anthropic" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E89A2B;fontColor=#142A52;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1160" y="380" width="280" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="awssvc" value="AWS Services&#10;Cognito • Secrets Manager&#10;CloudWatch • Route 53" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1F5FA8;fontColor=#FFFFFF;strokeColor=none;fontSize=12;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="1160" y="540" width="280" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="endArrow=block;html=1;strokeColor=#5A5A5A;strokeWidth=2" edge="1" parent="1" source="user" target="alb"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;strokeColor=#1F5FA8;strokeWidth=2" edge="1" parent="1" source="alb" target="ec2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="endArrow=block;html=1;strokeColor=#1F9E8A;strokeWidth=2" edge="1" parent="1" source="opt" target="db"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="endArrow=block;html=1;strokeColor=#E89A2B;strokeWidth=2" edge="1" parent="1" source="aiabs" target="ai"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" style="endArrow=block;html=1;strokeColor=#1F5FA8;strokeWidth=2" edge="1" parent="1" source="auth" target="awssvc"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
